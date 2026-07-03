@@ -1,0 +1,134 @@
+{
+  "name": "ascon-crypto-ip",
+  "x-version": "1.0.0",
+  "version": "0.1.0",
+  "description": "Ascon-AEAD128 authenticated-encryption core (NIST SP 800-232 lightweight cryptography). Clean-room parameterized SystemVerilog: 128-bit key/nonce/tag, single-round iterative permutation datapath, streaming block interface. Verified against all 1089 official NIST known-answer vectors via C/Python golden models plus Verilator and cocotb differential fuzzing.",
+  "category": "security",
+  "license": "Apache-2.0",
+  "owner": "Vyges Inc.",
+  "maturity": "development",
+  "created": "2026-07-03T03:30:11Z",
+  "updated": "2026-07-03T03:30:11Z",
+  "design_type": ["digital"],
+  "tags": ["crypto", "security", "aead", "authenticated-encryption", "ascon", "lightweight-cryptography", "nist", "sp800-232", "iot", "secure-boot"],
+  "source": {
+    "type": "git",
+    "url": "https://github.com/vyges/ascon-crypto-ip"
+  },
+  "interfaces": [
+    {
+      "type": "clock",
+      "name": "clock",
+      "signals": [
+        { "name": "clk_i", "direction": "input", "type": "clock", "width": 1 }
+      ]
+    },
+    {
+      "type": "reset",
+      "name": "reset",
+      "signals": [
+        { "name": "rst_ni", "direction": "input", "type": "reset", "width": 1, "active_level": "low" }
+      ]
+    },
+    {
+      "type": "control",
+      "name": "operation_control",
+      "description": "Start pulse and per-operation mode. Inputs are latched on start_i.",
+      "signals": [
+        { "name": "start_i", "direction": "input", "width": 1, "description": "begin a new AEAD operation (single-cycle pulse)" },
+        { "name": "decrypt_i", "direction": "input", "width": 1, "description": "0 = encrypt, 1 = decrypt" },
+        { "name": "ad_empty_i", "direction": "input", "width": 1, "description": "1 = no associated data" },
+        { "name": "ready_o", "direction": "output", "width": 1, "description": "core idle / can accept start" }
+      ]
+    },
+    {
+      "type": "data",
+      "name": "key_nonce_tag",
+      "description": "Key, nonce, and expected-tag inputs. Lane order {word1, word0}, little-endian bytes within a 64-bit lane.",
+      "signals": [
+        { "name": "key_i", "direction": "input", "width": 128, "description": "128-bit key {key1, key0}" },
+        { "name": "npub_i", "direction": "input", "width": 128, "description": "128-bit public nonce {n1, n0}" },
+        { "name": "exp_tag_i", "direction": "input", "width": 128, "description": "expected tag for decrypt verification" }
+      ]
+    },
+    {
+      "type": "stream",
+      "name": "associated_data",
+      "description": "Associated-data rate-block stream (valid/ready). bytes = 16 for a full block, 0..15 for a partial last block.",
+      "signals": [
+        { "name": "ad_valid_i", "direction": "input", "width": 1 },
+        { "name": "ad_data_i", "direction": "input", "width": 128 },
+        { "name": "ad_bytes_i", "direction": "input", "width": 5 },
+        { "name": "ad_last_i", "direction": "input", "width": 1 },
+        { "name": "ad_ready_o", "direction": "output", "width": 1 }
+      ]
+    },
+    {
+      "type": "stream",
+      "name": "message",
+      "description": "Message rate-block stream: plaintext in / ciphertext out for encrypt, ciphertext in / plaintext out for decrypt.",
+      "signals": [
+        { "name": "msg_valid_i", "direction": "input", "width": 1 },
+        { "name": "msg_data_i", "direction": "input", "width": 128 },
+        { "name": "msg_bytes_i", "direction": "input", "width": 5 },
+        { "name": "msg_last_i", "direction": "input", "width": 1 },
+        { "name": "msg_ready_o", "direction": "output", "width": 1 },
+        { "name": "msg_data_o", "direction": "output", "width": 128, "description": "ciphertext (encrypt) or plaintext (decrypt)" },
+        { "name": "msg_bytes_o", "direction": "output", "width": 5 },
+        { "name": "msg_valid_o", "direction": "output", "width": 1 }
+      ]
+    },
+    {
+      "type": "status",
+      "name": "result",
+      "description": "Completion, computed tag, and decrypt tag-match.",
+      "signals": [
+        { "name": "done_o", "direction": "output", "width": 1, "description": "pulse: tag_o / tag_ok_o valid" },
+        { "name": "tag_o", "direction": "output", "width": 128, "description": "128-bit authentication tag" },
+        { "name": "tag_ok_o", "direction": "output", "width": 1, "description": "decrypt: 1 if computed tag matched exp_tag_i" }
+      ]
+    }
+  ],
+  "parameters": [],
+  "rtl_files": [
+    { "path": "rtl/ascon_pkg.sv", "module": "ascon_pkg", "description": "shared parameters and the Ascon permutation round function" },
+    { "path": "rtl/ascon_perm.sv", "module": "ascon_perm", "description": "iterative single-round permutation with start/done handshake" },
+    { "path": "rtl/ascon_core.sv", "module": "ascon_core", "description": "Ascon-AEAD128 encrypt/decrypt control FSM and datapath" }
+  ],
+  "top_module": "ascon_core",
+  "test": {
+    "testbenches": [
+      {
+        "name": "ascon_core_cocotb",
+        "path": "tb/cocotb/",
+        "framework": "cocotb",
+        "simulators": ["verilator", "icarus"],
+        "description": "NIST known-answer conformance + randomized differential vs Python golden reference + corrupted-tag rejection"
+      },
+      {
+        "name": "ascon_core_diff_fuzz",
+        "path": "tb/verilator/",
+        "framework": "verilator-cpp",
+        "simulators": ["verilator"],
+        "description": "C++ differential fuzzer: RTL vs C golden model across randomized AD/PT lengths (4000 trials)"
+      },
+      {
+        "name": "golden_model_kat",
+        "path": "tb/model/",
+        "framework": "c",
+        "simulators": [],
+        "description": "C golden model vs all 1089 official NIST SP 800-232 vectors"
+      }
+    ],
+    "vectors": "tb/vectors/LWC_AEAD_KAT_128_128.txt",
+    "coverage": "functional",
+    "status": "passing"
+  },
+  "standards": ["NIST SP 800-232", "Ascon-AEAD128"],
+  "roadmap": [
+    "Ascon-Hash256 / Ascon-XOF128 / Ascon-CXOF128 (shared permutation)",
+    "APB / AXI-Lite register wrapper for SoC integration",
+    "Unrolled 2/4 rounds-per-cycle throughput variants",
+    "Side-channel-hardened (masked) permutation option"
+  ]
+}

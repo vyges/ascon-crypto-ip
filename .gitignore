@@ -1,0 +1,21 @@
+# Build / simulation artifacts
+build/
+obj_dir/
+*.o
+*.a
+*.d
+
+# Verilator
+sim_ascon
+*.vcd
+*.fst
+
+# cocotb
+tb/cocotb/sim_build/
+tb/cocotb/results.xml
+tb/cocotb/dump.fst
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store

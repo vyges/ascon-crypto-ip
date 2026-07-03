@@ -1,0 +1,21 @@
+ascon-crypto-ip
+Copyright 2026 Vyges (https://vyges.com)
+
+This product includes software developed at Vyges.
+Licensed under the Apache License, Version 2.0 (the "LICENSE" file).
+
+------------------------------------------------------------------------
+Algorithm and test vectors
+------------------------------------------------------------------------
+This IP implements Ascon-AEAD128 as specified in NIST Special Publication
+800-232, "Ascon-Based Lightweight Cryptography Standards for Constrained
+Devices." The Ascon algorithm is a public standard; the reference
+implementations published by the Ascon team are released into the public
+domain (CC0). The RTL and models in this repository are an independent,
+clean-room implementation written from the specification.
+
+The known-answer test vectors in tb/vectors/ (LWC_AEAD_KAT_128_128.txt) are
+the official Ascon-AEAD128 vectors from the Ascon reference distribution
+(https://github.com/ascon/ascon-c), used unmodified for conformance testing.
+Test vectors are facts, not creative works; the reference distribution is
+CC0 / public domain.
